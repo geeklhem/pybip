@@ -1,1 +1,4 @@
 /pybip.egg-info/
+*.dat
+__pycache__/
+*.py[cod]
