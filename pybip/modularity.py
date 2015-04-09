@@ -2,6 +2,7 @@ import os
 import networkx as nx 
 import numpy as np 
 import subprocess
+import pandas as pd
 import io
 
 def bipartite_modules(graph,inplace=False, **kargs):
@@ -38,16 +39,14 @@ def bipartite_modules(graph,inplace=False, **kargs):
         else:
             fmt = "{0[1]} {0[0]}\n"
         f.append(fmt.format(e))
-    f = "\n".join(f)
-
+    f = "".join(f)
+    print(f)
     # Execute bipartmod
     actors_mod = bipartmod_wrapper(f, **kargs)
     team_mod   = bipartmod_wrapper(f,inv=True,**kargs)
 
-    modules = {}
-    for i,nodes in enumerate(actors_mod+team_mod):
-        modules.update(dict(zip(nodes,[i]*len(nodes))))
-
+    modules = pd.concat((actors_mod,team_mod))
+    
     if inplace:
         nx.set_node_attributes(graph,"module",modules)
     return modules
@@ -86,16 +85,14 @@ def bipartmod_wrapper(network, iteration_factor=1, cooling_factor=.950,
                              stdout = subprocess.PIPE,
                              stderr = subprocess.PIPE)
         p.stdin.write(network.encode())
-        out = p.communicate()[0].decode()
+        out = io.StringIO(p.communicate()[0].decode())
 
     except Exception as e:
         print(e)
         print(e.__dict__)
         raise
 
-    modules = [] 
-    for l in out.strip().split("\n"):
-        modules.append(l.split("---")[1].strip().split(" "))
-
+    modules = pd.read_csv(out,sep="\t",header=None)
+    modules.columns = ["id","module","role","P","z","role_w","P_w","z_w"]
     return modules
 
