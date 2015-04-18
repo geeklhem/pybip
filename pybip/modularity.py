@@ -33,14 +33,11 @@ def bipartite_modules(graph,inplace=False, **kargs):
     
     # Write the network for bipartmod
     f = []
-    for e in graph.edges():
-        if part[e[0]]: 
-            fmt = "{0[0]} {0[1]}\n"
-        else:
-            fmt = "{0[1]} {0[0]}\n"
-        f.append(fmt.format(e))
-    f = "".join(f)
-    print(f)
+    # get the edges with the node from each part in the right order.
+    E = [e if part[e[0]] else e[::-1] for e in graph.edges()]
+
+    f = "\n".join(["{0[0]} {0[1]}".format(e) for e in E])
+    
     # Execute bipartmod
     actors_mod = bipartmod_wrapper(f, **kargs)
     team_mod   = bipartmod_wrapper(f,inv=True,**kargs)
@@ -54,7 +51,7 @@ def bipartite_modules(graph,inplace=False, **kargs):
 
 
 def bipartmod_wrapper(network, iteration_factor=1, cooling_factor=.950,
-                      inv=False, weighted=False, seed=None):
+                      inv=False, weighted=False, seed=None,degree=False):
     """
     Run bipartmod command. 
     
@@ -66,6 +63,7 @@ def bipartmod_wrapper(network, iteration_factor=1, cooling_factor=.950,
         cooling_factor (float): Cooling factor (recommended 0.950-0.995).
         inv (bool): Find modules for the first column (0) or second columnd (1).
         weighted (bool): use the weighted formula of modularity.
+        degree (bool): use degree based rather than strength based role metrics.
 
     Returns:
         (list of list): A list of the modules members. 
@@ -80,7 +78,8 @@ def bipartmod_wrapper(network, iteration_factor=1, cooling_factor=.950,
                               '-i', str(iteration_factor), 
                               '-c', str(cooling_factor),
                               '-w' if weighted else '',
-                              '-p' if inv else ''],
+                              '-p' if inv else ''
+                              '-d' if degree else ''],
                              stdin  = subprocess.PIPE,
                              stdout = subprocess.PIPE,
                              stderr = subprocess.PIPE)
@@ -92,7 +91,11 @@ def bipartmod_wrapper(network, iteration_factor=1, cooling_factor=.950,
         print(e.__dict__)
         raise
 
-    modules = pd.read_csv(out,sep="\t",header=None)
-    modules.columns = ["id","module","role","P","z","role_w","P_w","z_w"]
+    modules = pd.read_csv(out, sep="\t", header=None)
+    modules.columns = ["id","module","role","P","z"]
+    
+    modules["role"] = modules["role"].map(str.strip)
+    modules["id"] = modules["id"].map(str.strip)
+    
     return modules
 
