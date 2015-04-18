@@ -1,5 +1,8 @@
 import pandas as pd
 import networkx as nx
+from math import factorial
+
+
 def three_motifs(bipartite):
     """ Compute three motifs
     
@@ -18,4 +21,7 @@ def three_motifs(bipartite):
         print(bipartite.nodes.index)
     
     bipartite.nodes["2degree"] = bipartite.nodes.degree.values.dot(adj.toarray())
+    ##  Pos1 : (from Deg choose 2)
+    bipartite.nodes["pos_1"] = bipartite.nodes.degree.map(lambda x: factorial(x) // (2 * factorial(x-2)) if x>=2 else 0 )
+    bipartite.nodes["pos_2"] = bipartite.nodes["2degree"] - bipartite.nodes["degree"] 
     bipartite.nodes.reset_index(inplace=True)
